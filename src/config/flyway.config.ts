@@ -1,7 +1,7 @@
 export const FW = {
   SERVER: {
     NAME: '@mhdd_24/flyway-mcp',
-    VERSION: '1.0.0',
+    VERSION: '1.1.0',
     STARTUP_MESSAGE: 'Flyway MCP Server Started',
     FATAL_PREFIX: 'Fatal error:',
   },

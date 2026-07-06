@@ -1,6 +1,6 @@
 {
   "name": "@mhdd_24/flyway-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for Flyway repair and migrate across QA and Development environments with automatic error remediation",
   "type": "module",
   "main": "./dist/index.js",

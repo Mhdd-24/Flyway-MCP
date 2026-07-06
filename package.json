@@ -9,7 +9,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "docs/WIKI.md"
   ],
   "publishConfig": {
     "access": "public"
@@ -28,7 +29,15 @@
     "migration",
     "cursor"
   ],
-  "author": "Mohammed Rafi",
+  "author": "Mhdd-24",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mhdd-24/Flyway-MCP.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mhdd-24/Flyway-MCP/issues"
+  },
+  "homepage": "https://github.com/Mhdd-24/Flyway-MCP#readme",
   "license": "ISC",
   "engines": {
     "node": ">=18"

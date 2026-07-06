@@ -16,13 +16,7 @@ export interface FlywayRunResult {
   success: boolean;
 }
 
-export type FlywayErrorKind =
-  | 'duplicate_version'
-  | 'checksum_mismatch'
-  | 'missing_relation'
-  | 'placeholder'
-  | 'failed_migration'
-  | 'unknown';
+export type FlywayErrorKind = 'duplicate_version' | 'checksum_mismatch' | 'missing_relation' | 'placeholder' | 'failed_migration' | 'unknown';
 
 export interface FlywayError {
   kind: FlywayErrorKind;

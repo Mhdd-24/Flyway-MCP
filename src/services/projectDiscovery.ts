@@ -16,46 +16,24 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 export async function discoverProjects(): Promise<FlywayProject[]> {
   const root = env.FLYWAY_ROOT;
-  if (!root) {
-    return [];
-  }
-
+  if (!root) { return []; }
   const entries = await readdir(root, { withFileTypes: true });
   const projects: FlywayProject[] = [];
-
   for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-
+    if (!entry.isDirectory()) { continue; }
     const projectPath = path.join(root, entry.name);
     const hasBase = await fileExists(path.join(projectPath, FW.CONFIG_FILES.BASE));
-    if (!hasBase) {
-      continue;
-    }
-
+    if (!hasBase) { continue; }
     const hasQa = await fileExists(path.join(projectPath, FW.CONFIG_FILES.QA));
     const hasDev = await fileExists(path.join(projectPath, FW.CONFIG_FILES.DEV));
-
-    if (!hasQa && !hasDev) {
-      continue;
-    }
-
-    projects.push({
-      name: entry.name,
-      path: projectPath,
-      hasQa,
-      hasDev,
-    });
+    if (!hasQa && !hasDev) { continue; }
+    projects.push({ name: entry.name, path: projectPath, hasQa, hasDev });
   }
-
   projects.sort((a, b) => a.name.localeCompare(b.name));
-
   if (env.FLYWAY_PROJECTS.length > 0) {
     const allowed = new Set(env.FLYWAY_PROJECTS);
     return projects.filter((p) => allowed.has(p.name));
   }
-
   return projects;
 }
 

@@ -4,7 +4,6 @@ function extractOffenders(output: string): string[] {
   const offenders: string[] = [];
   const lines = output.split(/\r?\n/);
   let inOffenders = false;
-
   for (const line of lines) {
     if (/Offenders:/i.test(line)) {
       inOffenders = true;
@@ -21,13 +20,11 @@ function extractOffenders(output: string): string[] {
       }
     }
   }
-
   return offenders;
 }
 
 export function analyzeFlywayOutput(output: string): FlywayError[] {
   const errors: FlywayError[] = [];
-
   const duplicateMatch = output.match(/Found more than one migration with version (\d+)/i);
   if (duplicateMatch) {
     errors.push({
@@ -37,14 +34,9 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
       offenders: extractOffenders(output),
     });
   }
-
   if (/checksum mismatch|validate failed|migration checksum/i.test(output)) {
-    errors.push({
-      kind: 'checksum_mismatch',
-      message: 'Migration checksum mismatch detected',
-    });
+    errors.push({ kind: 'checksum_mismatch', message: 'Migration checksum mismatch detected' });
   }
-
   const relationMatch = output.match(/relation "([^"]+)" does not exist/i);
   if (relationMatch) {
     const locationMatch = output.match(/Location\s*:\s*(.+?)\s*\(/i);
@@ -57,11 +49,9 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
       line: lineMatch ? Number.parseInt(lineMatch[1], 10) : undefined,
     });
   }
-
   const placeholderMatch = output.match(/No value provided for placeholder: \$\{([^}]+)\}/i);
   if (placeholderMatch) {
-    const locationMatch = output.match(/Script\s+(.+?)\s+failed/i)
-      ?? output.match(/Location\s*:\s*(.+?)\s*\(/i);
+    const locationMatch = output.match(/Script\s+(.+?)\s+failed/i) ?? output.match(/Location\s*:\s*(.+?)\s*\(/i);
     errors.push({
       kind: 'placeholder',
       message: placeholderMatch[0],
@@ -69,40 +59,23 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
       migrationFile: locationMatch?.[1]?.trim(),
     });
   }
-
   if (/Migration of schema .* failed/i.test(output) && errors.length === 0) {
-    errors.push({
-      kind: 'failed_migration',
-      message: 'Migration failed',
-    });
+    errors.push({ kind: 'failed_migration', message: 'Migration failed' });
   }
-
   if (errors.length === 0 && /ERROR:/i.test(output)) {
     errors.push({
       kind: 'unknown',
       message: output.split('\n').find((l) => /ERROR:/i.test(l)) ?? 'Unknown Flyway error',
     });
   }
-
   return errors;
 }
 
 export function primaryError(errors: FlywayError[]): FlywayError | undefined {
-  const priority: FlywayError['kind'][] = [
-    'duplicate_version',
-    'placeholder',
-    'missing_relation',
-    'checksum_mismatch',
-    'failed_migration',
-    'unknown',
-  ];
-
+  const priority: FlywayError['kind'][] = ['duplicate_version', 'placeholder', 'missing_relation', 'checksum_mismatch', 'failed_migration', 'unknown'];
   for (const kind of priority) {
     const hit = errors.find((e) => e.kind === kind);
-    if (hit) {
-      return hit;
-    }
+    if (hit) { return hit; }
   }
-
   return errors[0];
 }

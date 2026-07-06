@@ -30,10 +30,9 @@ export const FW = {
     MAX_RETRIES_DEFAULT: 3,
   },
   MESSAGES: {
-    ROOT_MISSING: 'FLYWAY_ROOT is not set. Point it to your Flyway projects folder (e.g. cargo_skai_DBscripts/Flyway).',
+    ROOT_MISSING: 'FLYWAY_ROOT is not set. Point it to the folder containing your Flyway project directories.',
     NO_PROJECTS: 'No Flyway projects found under FLYWAY_ROOT.',
-    CONFIG_MISSING: (project: string, env: string) =>
-      `Missing flyway_${env}.toml in ${project}`,
+    CONFIG_MISSING: (project: string, env: string) => `Missing flyway_${env}.toml in ${project}`,
     CLI_FAILED: 'Flyway CLI failed',
     REMEDIATION_APPLIED: 'Remediation applied',
     REMEDIATION_NONE: 'No automatic remediation available for this error',
@@ -41,17 +40,11 @@ export const FW = {
   TOOLS: {
     QA_MIGRATION: {
       NAME: 'qa_flyway_migration',
-      DESCRIPTION:
-        'QA Flyway Migration: run flyway repair and migrate for all configured projects against the QA environment. ' +
-        'Use when the user says "QA Flyway Migration". Automatically fixes duplicate versions, checksum mismatches, ' +
-        'Flyway placeholder errors in JS migrations, and missing-table failures where possible.',
+      DESCRIPTION: 'QA Flyway Migration: run flyway repair and migrate for all configured projects against the QA environment. Use when the user says "QA Flyway Migration". Automatically fixes duplicate versions, checksum mismatches, Flyway placeholder errors in JS migrations, and missing-table failures where possible.',
     },
     DEV_MIGRATION: {
       NAME: 'dev_flyway_migration',
-      DESCRIPTION:
-        'Dev Flyway Migration: run flyway repair and migrate for all configured projects against the Development environment. ' +
-        'Use when the user says "Dev Flyway Migration". Automatically fixes duplicate versions, checksum mismatches, ' +
-        'Flyway placeholder errors in JS migrations, and missing-table failures where possible.',
+      DESCRIPTION: 'Dev Flyway Migration: run flyway repair and migrate for all configured projects against the Development environment. Use when the user says "Dev Flyway Migration". Automatically fixes duplicate versions, checksum mismatches, Flyway placeholder errors in JS migrations, and missing-table failures where possible.',
     },
     LIST_PROJECTS: {
       NAME: 'list_flyway_projects',

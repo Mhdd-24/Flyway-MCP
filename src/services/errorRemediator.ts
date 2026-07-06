@@ -1,72 +1,21 @@
-import { readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-
-import type { FlywayError, RemediationAction } from '../interfaces/flyway.js';
+import { readFile, rename, writeFile } from 'node:fs/promises';
+import type { FlywayError, RemediationAction } from '../interfaces/error.js';
+import { buildVersionedName, escapeRegExp, listMigrationFiles, nextAvailableVersion, parseMigrationVersion } from '../utils/migrationFiles.js';
 
 const VERSION_PATTERN = /^V(\d+)__(.+)$/i;
 
-async function listMigrationFiles(projectPath: string): Promise<string[]> {
-  const migrationsRoot = path.join(projectPath, 'migrations');
-  const results: string[] = [];
-
-  async function walk(dir: string): Promise<void> {
-    let entries;
-    try {
-      entries = await readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        await walk(full);
-      } else if (VERSION_PATTERN.test(entry.name)) {
-        results.push(full);
-      }
-    }
-  }
-
-  await walk(migrationsRoot);
-  return results;
-}
-
-function parseVersion(fileName: string): number | null {
-  const match = fileName.match(VERSION_PATTERN);
-  return match ? Number.parseInt(match[1], 10) : null;
-}
-
-function buildVersionedName(version: number, suffix: string): string {
-  return `V${version}__${suffix}`;
-}
-
-async function nextAvailableVersion(projectPath: string): Promise<number> {
-  const files = await listMigrationFiles(projectPath);
-  const versions = files
-    .map((f) => parseVersion(path.basename(f)))
-    .filter((v): v is number => v !== null);
-  return versions.length > 0 ? Math.max(...versions) + 1 : 1;
-}
-
-export async function fixDuplicateVersions(
-  projectPath: string,
-  error: FlywayError,
-): Promise<RemediationAction | null> {
+export async function fixDuplicateVersions(projectPath: string, error: FlywayError): Promise<RemediationAction | null> {
   const version = error.version;
-  if (!version) {
-    return null;
-  }
+  if (!version) { return null; }
 
   const offenders = error.offenders?.length
     ? error.offenders
-    : (await listMigrationFiles(projectPath)).filter((f) => parseVersion(path.basename(f)) === version);
+    : (await listMigrationFiles(projectPath)).filter((f) => parseMigrationVersion(path.basename(f)) === version);
 
-  if (offenders.length < 2) {
-    return null;
-  }
+  if (offenders.length < 2) { return null; }
 
   const sorted = [...offenders].sort((a, b) => a.localeCompare(b));
-  const keep = sorted[0];
   const toRename = sorted.slice(1);
   const filesChanged: string[] = [];
   let nextVersion = await nextAvailableVersion(projectPath);
@@ -74,40 +23,29 @@ export async function fixDuplicateVersions(
   for (const filePath of toRename) {
     const base = path.basename(filePath);
     const match = base.match(VERSION_PATTERN);
-    if (!match) {
-      continue;
-    }
-    const suffix = match[2];
-    const newName = buildVersionedName(nextVersion, suffix);
+    if (!match) { continue; }
+
+    const newName = buildVersionedName(nextVersion, match[2]);
     const newPath = path.join(path.dirname(filePath), newName);
     await rename(filePath, newPath);
     filesChanged.push(`${base} → ${newName}`);
     nextVersion += 1;
   }
 
-  if (filesChanged.length === 0) {
-    return null;
-  }
+  if (filesChanged.length === 0) { return null; }
 
   return {
-    description: `Resolved duplicate V${version}: kept ${path.basename(keep)}, renamed ${filesChanged.length} file(s)`,
+    description: `Resolved duplicate V${version}: kept ${path.basename(sorted[0])}, renamed ${filesChanged.length} file(s)`,
     filesChanged,
   };
 }
 
-export async function fixPlaceholderInJs(
-  projectPath: string,
-  error: FlywayError,
-): Promise<RemediationAction | null> {
+export async function fixPlaceholderInJs(projectPath: string, error: FlywayError): Promise<RemediationAction | null> {
   const placeholder = error.placeholder;
-  if (!placeholder) {
-    return null;
-  }
+  if (!placeholder) { return null; }
 
   let targetFile = error.migrationFile;
-  if (targetFile && !path.isAbsolute(targetFile)) {
-    targetFile = path.join(projectPath, targetFile);
-  }
+  if (targetFile && !path.isAbsolute(targetFile)) { targetFile = path.join(projectPath, targetFile); }
 
   const candidates = targetFile
     ? [targetFile]
@@ -122,12 +60,9 @@ export async function fixPlaceholderInJs(
     }
 
     const token = `\${${placeholder}}`;
-    if (!content.includes(token)) {
-      continue;
-    }
+    if (!content.includes(token)) { continue; }
 
     let updated = content;
-
     if (placeholder === 'dbName') {
       updated = updated
         .replace(/\$\{dbName\}/g, 'db')
@@ -137,9 +72,7 @@ export async function fixPlaceholderInJs(
       updated = updated.replaceAll(token, '');
     }
 
-    if (updated === content) {
-      continue;
-    }
+    if (updated === content) { continue; }
 
     await writeFile(filePath, updated, 'utf8');
     return {
@@ -151,38 +84,22 @@ export async function fixPlaceholderInJs(
   return null;
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-export async function fixMissingRelation(
-  projectPath: string,
-  error: FlywayError,
-): Promise<RemediationAction | null> {
+export async function fixMissingRelation(projectPath: string, error: FlywayError): Promise<RemediationAction | null> {
   const relation = error.relation;
-  if (!relation) {
-    return null;
-  }
+  if (!relation) { return null; }
 
   let targetFile = error.migrationFile;
-  if (targetFile && !path.isAbsolute(targetFile)) {
-    targetFile = path.join(projectPath, targetFile);
-  }
+  if (targetFile && !path.isAbsolute(targetFile)) { targetFile = path.join(projectPath, targetFile); }
 
   if (!targetFile) {
     const sqlFiles = (await listMigrationFiles(projectPath)).filter((f) => f.endsWith('.sql'));
     for (const file of sqlFiles) {
       const content = await readFile(file, 'utf8');
-      if (content.includes(relation)) {
-        targetFile = file;
-        break;
-      }
+      if (content.includes(relation)) { targetFile = file; break; }
     }
   }
 
-  if (!targetFile) {
-    return null;
-  }
+  if (!targetFile) { return null; }
 
   const content = await readFile(targetFile, 'utf8');
   const [schema, table] = relation.includes('.') ? relation.split('.') : ['public', relation];
@@ -192,14 +109,10 @@ export async function fixMissingRelation(
   );
 
   const blockMatch = content.match(commentPattern);
-  if (!blockMatch) {
-    return null;
-  }
+  if (!blockMatch) { return null; }
 
   const block = blockMatch[0];
-  if (block.includes('to_regclass') || block.includes('fn_add_parent_tenant_id')) {
-    return null;
-  }
+  if (block.includes('to_regclass') || block.includes('fn_add_parent_tenant_id')) { return null; }
 
   const wrapped = `-- ${schema}.${table} (conditional: skip if table missing)
 DO $$
@@ -216,9 +129,7 @@ END $$;
 `;
 
   const updated = content.replace(block, wrapped);
-  if (updated === content) {
-    return null;
-  }
+  if (updated === content) { return null; }
 
   await writeFile(targetFile, updated, 'utf8');
   return {
@@ -227,10 +138,7 @@ END $$;
   };
 }
 
-export async function applyRemediation(
-  projectPath: string,
-  error: FlywayError,
-): Promise<RemediationAction | null> {
+export async function applyRemediation(projectPath: string, error: FlywayError): Promise<RemediationAction | null> {
   switch (error.kind) {
     case 'duplicate_version':
       return fixDuplicateVersions(projectPath, error);
@@ -240,10 +148,7 @@ export async function applyRemediation(
       return fixMissingRelation(projectPath, error);
     case 'checksum_mismatch':
     case 'failed_migration':
-      return {
-        description: 'Checksum/failed migration — flyway repair will be retried',
-        filesChanged: [],
-      };
+      return { description: 'Checksum/failed migration — flyway repair will be retried', filesChanged: [] };
     default:
       return null;
   }

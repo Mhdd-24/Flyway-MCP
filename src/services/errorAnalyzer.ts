@@ -1,4 +1,4 @@
-import type { FlywayError } from '../interfaces/flyway.js';
+import type { FlywayError } from '../interfaces/error.js';
 
 function extractOffenders(output: string): string[] {
   const offenders: string[] = [];
@@ -6,20 +6,12 @@ function extractOffenders(output: string): string[] {
   let inOffenders = false;
 
   for (const line of lines) {
-    if (/Offenders:/i.test(line)) {
-      inOffenders = true;
-      continue;
-    }
-    if (inOffenders) {
-      const match = line.match(/->\s*(.+)$/);
-      if (match) {
-        offenders.push(match[1].trim());
-        continue;
-      }
-      if (line.trim() === '' || /^ERROR:/i.test(line)) {
-        inOffenders = false;
-      }
-    }
+    if (/Offenders:/i.test(line)) { inOffenders = true; continue; }
+    if (!inOffenders) { continue; }
+
+    const match = line.match(/->\s*(.+)$/);
+    if (match) { offenders.push(match[1].trim()); continue; }
+    if (line.trim() === '' || /^ERROR:/i.test(line)) { inOffenders = false; }
   }
 
   return offenders;
@@ -39,10 +31,7 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
   }
 
   if (/checksum mismatch|validate failed|migration checksum/i.test(output)) {
-    errors.push({
-      kind: 'checksum_mismatch',
-      message: 'Migration checksum mismatch detected',
-    });
+    errors.push({ kind: 'checksum_mismatch', message: 'Migration checksum mismatch detected' });
   }
 
   const relationMatch = output.match(/relation "([^"]+)" does not exist/i);
@@ -60,8 +49,7 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
 
   const placeholderMatch = output.match(/No value provided for placeholder: \$\{([^}]+)\}/i);
   if (placeholderMatch) {
-    const locationMatch = output.match(/Script\s+(.+?)\s+failed/i)
-      ?? output.match(/Location\s*:\s*(.+?)\s*\(/i);
+    const locationMatch = output.match(/Script\s+(.+?)\s+failed/i) ?? output.match(/Location\s*:\s*(.+?)\s*\(/i);
     errors.push({
       kind: 'placeholder',
       message: placeholderMatch[0],
@@ -71,10 +59,7 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
   }
 
   if (/Migration of schema .* failed/i.test(output) && errors.length === 0) {
-    errors.push({
-      kind: 'failed_migration',
-      message: 'Migration failed',
-    });
+    errors.push({ kind: 'failed_migration', message: 'Migration failed' });
   }
 
   if (errors.length === 0 && /ERROR:/i.test(output)) {
@@ -87,22 +72,15 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
   return errors;
 }
 
+const ERROR_PRIORITY: FlywayError['kind'][] = [
+  'duplicate_version',
+  'placeholder',
+  'missing_relation',
+  'checksum_mismatch',
+  'failed_migration',
+  'unknown',
+];
+
 export function primaryError(errors: FlywayError[]): FlywayError | undefined {
-  const priority: FlywayError['kind'][] = [
-    'duplicate_version',
-    'placeholder',
-    'missing_relation',
-    'checksum_mismatch',
-    'failed_migration',
-    'unknown',
-  ];
-
-  for (const kind of priority) {
-    const hit = errors.find((e) => e.kind === kind);
-    if (hit) {
-      return hit;
-    }
-  }
-
-  return errors[0];
+  return ERROR_PRIORITY.map((kind) => errors.find((e) => e.kind === kind)).find(Boolean) ?? errors[0];
 }

@@ -72,9 +72,10 @@ The server exposes three tools:
 |-------|----------|---------|
 | **Entry** | `src/index.ts` | Boot MCP server, validate env, register tools |
 | **Config** | `src/config/flyway.config.ts` | Constants (`FW`) — messages, tool metadata |
-| **Interfaces** | `src/interfaces/` | TypeScript contracts |
-| **Tools** | `src/tools/` | MCP tool schemas + handlers |
+| **Interfaces** | `src/interfaces/` | TypeScript contracts (`project`, `migration`, `error`) |
+| **Tools** | `src/tools/` | One MCP tool per file + shared registration helper |
 | **Services** | `src/services/` | Discovery, CLI runner, migration orchestration, remediation |
+| **Utils** | `src/utils/` | MCP responses, output truncation, migration file helpers |
 | **Env** | `src/env.ts` | Read `process.env` with aliases |
 
 ---
@@ -215,8 +216,17 @@ flyway-mcp/
 ├── src/
 │   ├── index.ts
 │   ├── env.ts
-│   ├── config/flyway.config.ts
-│   ├── interfaces/flyway.ts
+│   ├── config/
+│   │   └── flyway.config.ts
+│   ├── interfaces/
+│   │   ├── project.ts
+│   │   ├── migration.ts
+│   │   └── error.ts
+│   ├── utils/
+│   │   ├── toolResponse.ts
+│   │   ├── output.ts
+│   │   ├── migrationFiles.ts
+│   │   └── fs.ts
 │   ├── services/
 │   │   ├── projectDiscovery.ts
 │   │   ├── flywayRunner.ts
@@ -225,7 +235,10 @@ flyway-mcp/
 │   │   └── errorRemediator.ts
 │   └── tools/
 │       ├── index.ts
-│       └── migrationTools.ts
+│       ├── listFlywayProjectsTool.ts
+│       ├── qaFlywayMigrationTool.ts
+│       ├── devFlywayMigrationTool.ts
+│       └── registerEnvironmentMigrationTool.ts
 ├── docs/WIKI.md
 ├── package.json
 ├── tsconfig.json
@@ -245,7 +258,14 @@ flyway-mcp/
 | `migrationService.ts` | Orchestrate repair/migrate/retry per project |
 | `errorAnalyzer.ts` | Parse Flyway stderr for known patterns |
 | `errorRemediator.ts` | Apply file-level fixes when possible |
-| `migrationTools.ts` | Register MCP tools with Zod schemas |
+| `listFlywayProjectsTool.ts` | MCP tool — list discovered projects |
+| `qaFlywayMigrationTool.ts` | MCP tool — QA migration entry point |
+| `devFlywayMigrationTool.ts` | MCP tool — Dev migration entry point |
+| `registerEnvironmentMigrationTool.ts` | Shared migration tool handler |
+| `utils/toolResponse.ts` | MCP success/error response helpers |
+| `utils/migrationFiles.ts` | Migration file discovery and versioning helpers |
+| `utils/output.ts` | Truncate long Flyway CLI output |
+| `utils/fs.ts` | Filesystem helpers |
 
 ---
 

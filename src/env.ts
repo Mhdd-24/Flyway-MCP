@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-
 import { FW } from './config/flyway.config.js';
 
 dotenv.config();
@@ -7,18 +6,14 @@ dotenv.config();
 function readEnv(keys: readonly string[]): string | undefined {
   for (const key of keys) {
     const value = process.env[key];
-    if (value?.trim()) {
-      return value.trim();
-    }
+    if (value?.trim()) { return value.trim(); }
   }
   return undefined;
 }
 
 function readInt(keys: readonly string[], fallback: number): number {
   const raw = readEnv(keys);
-  if (!raw) {
-    return fallback;
-  }
+  if (!raw) { return fallback; }
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
@@ -31,7 +26,5 @@ export const env = {
 };
 
 export function validateEnv(): void {
-  if (!env.FLYWAY_ROOT) {
-    console.error(FW.MESSAGES.ROOT_MISSING);
-  }
+  if (!env.FLYWAY_ROOT) { console.error(FW.MESSAGES.ROOT_MISSING); }
 }

@@ -1,0 +1,47 @@
+{
+  "name": "@mhdd_24/flyway-mcp",
+  "version": "1.0.1",
+  "description": "MCP server for Flyway repair and migrate across QA and Development environments with automatic error remediation",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "flyway-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs/WIKI.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "prepack": "npm run build",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "flyway",
+    "database",
+    "migration",
+    "cursor"
+  ],
+  "author": "Mohammed Rafi",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

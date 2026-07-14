@@ -1,4 +1,5 @@
 import type { FlywayError } from '../interfaces/error.js';
+import { cleanMigrationPath } from '../utils/migrationFiles.js';
 
 function extractOffenders(output: string): string[] {
   const offenders: string[] = [];
@@ -10,7 +11,11 @@ function extractOffenders(output: string): string[] {
     if (!inOffenders) { continue; }
 
     const match = line.match(/->\s*(.+)$/);
-    if (match) { offenders.push(match[1].trim()); continue; }
+    if (match) {
+      const cleaned = cleanMigrationPath(match[1]);
+      if (cleaned) { offenders.push(cleaned); }
+      continue;
+    }
     if (line.trim() === '' || /^ERROR:/i.test(line)) { inOffenders = false; }
   }
 
@@ -42,7 +47,7 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
       kind: 'missing_relation',
       message: relationMatch[0],
       relation: relationMatch[1],
-      migrationFile: locationMatch?.[1]?.trim(),
+      migrationFile: locationMatch?.[1] ? cleanMigrationPath(locationMatch[1]) : undefined,
       line: lineMatch ? Number.parseInt(lineMatch[1], 10) : undefined,
     });
   }
@@ -54,7 +59,7 @@ export function analyzeFlywayOutput(output: string): FlywayError[] {
       kind: 'placeholder',
       message: placeholderMatch[0],
       placeholder: placeholderMatch[1],
-      migrationFile: locationMatch?.[1]?.trim(),
+      migrationFile: locationMatch?.[1] ? cleanMigrationPath(locationMatch[1]) : undefined,
     });
   }
 

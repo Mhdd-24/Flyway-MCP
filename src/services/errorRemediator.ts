@@ -1,16 +1,27 @@
 import path from 'node:path';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import type { FlywayError, RemediationAction } from '../interfaces/error.js';
-import { buildVersionedName, escapeRegExp, listMigrationFiles, nextAvailableVersion, parseMigrationVersion } from '../utils/migrationFiles.js';
+import {
+  buildVersionedName,
+  escapeRegExp,
+  listMigrationFiles,
+  nextAvailableVersion,
+  parseMigrationVersion,
+  resolveMigrationPath,
+} from '../utils/migrationFiles.js';
 
 const VERSION_PATTERN = /^V(\d+)__(.+)$/i;
+
+function resolveOffenderPaths(projectPath: string, offenders: string[]): string[] {
+  return offenders.map((offender) => resolveMigrationPath(projectPath, offender));
+}
 
 export async function fixDuplicateVersions(projectPath: string, error: FlywayError): Promise<RemediationAction | null> {
   const version = error.version;
   if (!version) { return null; }
 
   const offenders = error.offenders?.length
-    ? error.offenders
+    ? resolveOffenderPaths(projectPath, error.offenders)
     : (await listMigrationFiles(projectPath)).filter((f) => parseMigrationVersion(path.basename(f)) === version);
 
   if (offenders.length < 2) { return null; }
@@ -44,8 +55,9 @@ export async function fixPlaceholderInJs(projectPath: string, error: FlywayError
   const placeholder = error.placeholder;
   if (!placeholder) { return null; }
 
-  let targetFile = error.migrationFile;
-  if (targetFile && !path.isAbsolute(targetFile)) { targetFile = path.join(projectPath, targetFile); }
+  const targetFile = error.migrationFile
+    ? resolveMigrationPath(projectPath, error.migrationFile)
+    : undefined;
 
   const candidates = targetFile
     ? [targetFile]
@@ -88,8 +100,9 @@ export async function fixMissingRelation(projectPath: string, error: FlywayError
   const relation = error.relation;
   if (!relation) { return null; }
 
-  let targetFile = error.migrationFile;
-  if (targetFile && !path.isAbsolute(targetFile)) { targetFile = path.join(projectPath, targetFile); }
+  let targetFile = error.migrationFile
+    ? resolveMigrationPath(projectPath, error.migrationFile)
+    : undefined;
 
   if (!targetFile) {
     const sqlFiles = (await listMigrationFiles(projectPath)).filter((f) => f.endsWith('.sql'));

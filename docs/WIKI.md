@@ -303,8 +303,12 @@ Point Cursor MCP at `node dist/index.js` for local testing.
 | MCP won't start | Ensure Node 18+; check `FLYWAY_ROOT` |
 | No projects found | Each subfolder needs `flyway.toml` |
 | Windows `Invalid flag: -configFiles` | Use v1.0.1+ (single-line shell command) |
+| `ENOENT` rename under user home (`C:\Users\…\migrations\…`) | Fixed in **v1.0.3** — relative offender paths resolve under `FLYWAY_ROOT/<project>` (e.g. `C:\codeBase\cargo_skai_DBscripts\Flyway\SkAi_RTS_App_Configuration`) |
+| Duplicate version auto-rename uses wrong folder | Same as above — use MCP package **≥ 1.0.3** |
 | Trino/other DB fails | Install Flyway plugin for that database |
 | `repeatables/qa not found` | Harmless — create folder or remove from `flyway_qa.toml` |
+| Schema newer than local scripts | Pull missing migration files; Flyway will not re-run already-applied versions |
+| Edited an already-applied script | `repair` updates checksum only — re-run SQL manually or add a new `V{n+1}` |
 
 ---
 

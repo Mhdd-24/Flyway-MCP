@@ -4,13 +4,47 @@ import { env } from '../env.js';
 import type { FlywayRunResult } from '../interfaces/migration.js';
 import { getConfigFiles } from './projectDiscovery.js';
 
+/** Migrations must always execute SQL/JS. Never mark history without running scripts. */
+const FORCE_EXECUTE_FLAG = '-skipExecutingMigrations=false';
+
 function flywayArgs(environment: 'qa' | 'dev', subcommand: string): string[] {
-  return [`-configFiles=${getConfigFiles(environment).join(',')}`, subcommand];
+  const args = [`-configFiles=${getConfigFiles(environment).join(',')}`, subcommand];
+  if (subcommand === FW.COMMANDS.MIGRATE) {
+    args.splice(1, 0, FORCE_EXECUTE_FLAG);
+  }
+  return args;
+}
+
+export function assertNoSkipExecute(commandText: string): void {
+  if (/skipExecutingMigrations\s*=\s*true/i.test(commandText)) {
+    throw new Error(FW.MESSAGES.SKIP_EXECUTE_FORBIDDEN);
+  }
+}
+
+/** Flyway logs this when -skipExecutingMigrations=true was used. */
+export function detectSkipExecuteInOutput(output: string): boolean {
+  return /Skipping execution of migration/i.test(output)
+    || /skipExecutingMigrations\s*=\s*true/i.test(output);
 }
 
 function runProcess(args: string[], cwd: string): Promise<FlywayRunResult> {
   return new Promise((resolve) => {
     const commandText = `${env.FLYWAY_CLI} ${args.join(' ')}`;
+    try {
+      assertNoSkipExecute(commandText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      resolve({
+        command: commandText,
+        exitCode: 1,
+        stdout: '',
+        stderr: message,
+        combined: message,
+        success: false,
+      });
+      return;
+    }
+
     const child = process.platform === 'win32'
       ? spawn(commandText, { cwd, shell: true, env: process.env })
       : spawn(env.FLYWAY_CLI, args, { cwd, env: process.env });

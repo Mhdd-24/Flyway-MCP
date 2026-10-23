@@ -151,10 +151,18 @@ The MCP server runs:
 
 ```bash
 flyway -configFiles=flyway.toml,flyway_qa.toml repair
-flyway -configFiles=flyway.toml,flyway_qa.toml migrate
+flyway -configFiles=flyway.toml,flyway_qa.toml -skipExecutingMigrations=false migrate
 ```
 
 (On Windows, the command is executed as a single shell line for compatibility.)
+
+### Never skip-execute migrations
+
+`skipExecutingMigrations=true` is **forbidden**. It records versions in `flyway_schema_history` with `execution_time = 0` **without running scripts**, so seed/data migrations (and DDL) never apply.
+
+- MCP migrate always forces `-skipExecutingMigrations=false` and fails if skip-execution is detected in output.
+- Each project `flyway.toml` should set `skipExecutingMigrations = false`.
+- If migrate fails because objects already exist, make the script idempotent and re-run — do not mark history without execute.
 
 ---
 

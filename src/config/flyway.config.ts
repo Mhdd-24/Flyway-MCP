@@ -1,7 +1,7 @@
 export const FW = {
   SERVER: {
     NAME: '@mhdd_24/flyway-mcp',
-    VERSION: '1.0.3',
+    VERSION: '1.0.4',
     STARTUP_MESSAGE: 'Flyway MCP Server Started',
     FATAL_PREFIX: 'Fatal error:',
   },
@@ -35,6 +35,12 @@ export const FW = {
     CONFIG_MISSING: (project: string, env: string) =>
       `Missing flyway_${env}.toml in ${project}`,
     CLI_FAILED: 'Flyway CLI failed',
+    SKIP_EXECUTE_FORBIDDEN:
+      'skipExecutingMigrations=true is forbidden. Migrations must execute scripts so schema/data are applied. ' +
+      'Fix failing SQL to be idempotent (IF NOT EXISTS / WHERE NOT EXISTS), then re-run migrate — do not mark history without execute.',
+    SKIP_EXECUTE_DETECTED:
+      'Flyway reported skipped migration execution. Aborting so history is not left with execution_time=0 and missing data. ' +
+      'Re-run without skipExecutingMigrations; make scripts idempotent if objects already exist.',
     REMEDIATION_APPLIED: 'Remediation applied',
     REMEDIATION_NONE: 'No automatic remediation available for this error',
   },
@@ -43,14 +49,16 @@ export const FW = {
       NAME: 'qa_flyway_migration',
       DESCRIPTION:
         'QA Flyway Migration: run flyway repair and migrate for all configured projects against the QA environment. ' +
-        'Use when the user says "QA Flyway Migration". Automatically fixes duplicate versions, checksum mismatches, ' +
+        'Use when the user says "QA Flyway Migration". Always executes migration scripts (never skipExecutingMigrations). ' +
+        'Automatically fixes duplicate versions, checksum mismatches, ' +
         'Flyway placeholder errors in JS migrations, and missing-table failures where possible.',
     },
     DEV_MIGRATION: {
       NAME: 'dev_flyway_migration',
       DESCRIPTION:
         'Dev Flyway Migration: run flyway repair and migrate for all configured projects against the Development environment. ' +
-        'Use when the user says "Dev Flyway Migration". Automatically fixes duplicate versions, checksum mismatches, ' +
+        'Use when the user says "Dev Flyway Migration". Always executes migration scripts (never skipExecutingMigrations). ' +
+        'Automatically fixes duplicate versions, checksum mismatches, ' +
         'Flyway placeholder errors in JS migrations, and missing-table failures where possible.',
     },
     LIST_PROJECTS: {

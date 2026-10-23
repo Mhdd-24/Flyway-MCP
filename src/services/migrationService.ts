@@ -6,7 +6,7 @@ import type { FlywayProject } from '../interfaces/project.js';
 import { sliceOutput } from '../utils/output.js';
 import { analyzeFlywayOutput, primaryError } from './errorAnalyzer.js';
 import { applyRemediation } from './errorRemediator.js';
-import { runMigrate, runRepair } from './flywayRunner.js';
+import { detectSkipExecuteInOutput, runMigrate, runRepair } from './flywayRunner.js';
 import { assertEnvironmentConfig, discoverProjects } from './projectDiscovery.js';
 
 function shouldRetryAfterRemediation(error: FlywayError, remediation: RemediationAction | null): boolean {
@@ -29,6 +29,18 @@ async function migrateProject(project: FlywayProject, environment: FlywayEnviron
 
     const migrateResult = await runMigrate(project.path, environment);
     lastOutput = migrateResult.combined;
+
+    if (detectSkipExecuteInOutput(migrateResult.combined)) {
+      return {
+        project: project.name,
+        environment,
+        success: false,
+        attempts,
+        remediations,
+        lastOutput: sliceOutput(lastOutput),
+        error: FW.MESSAGES.SKIP_EXECUTE_DETECTED,
+      };
+    }
 
     if (migrateResult.success) {
       return {

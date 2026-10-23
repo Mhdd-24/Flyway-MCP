@@ -18,7 +18,7 @@ You (chat) → MCP client → flyway-mcp → discover projects under FLYWAY_ROOT
 
 1. **Discovery** — finds subfolders with `flyway.toml` and `flyway_qa.toml` / `flyway_dev.toml`
 2. **Repair** — fixes schema history checksums before migrate
-3. **Migrate** — applies pending migrations per environment config
+3. **Migrate** — applies pending migrations per environment config (always **executes** scripts; `skipExecutingMigrations` is forced off)
 4. **Remediation** — on failure, attempts automatic fixes (duplicate versions, placeholders, missing tables) and retries
 
 ---
@@ -188,6 +188,7 @@ Some errors (e.g. missing database plugins) cannot be auto-fixed and are reporte
 | `FLYWAY_ROOT is not set` | Set `FLYWAY_ROOT` in MCP `env` |
 | `Invalid flag: -configFiles` (Windows) | Upgrade to `@mhdd_24/flyway-mcp@1.0.1`+ |
 | `ENOENT` rename under `C:\Users\…\migrations\…` | Upgrade to **1.0.3+** — paths resolve under `FLYWAY_ROOT/<project>` |
+| History shows `execution_time = 0` / missing seed data | Do **not** use `-skipExecutingMigrations=true`. Upgrade MCP to **1.0.4+**; delete false history rows and remigrate with real execute |
 | `No Flyway projects found` | Ensure subfolders contain `flyway.toml` |
 | `No Flyway database plugin` | Install the Flyway plugin for that database type |
 | Edited already-applied migration does nothing | Expected — add a new version or run SQL manually after `repair` |
